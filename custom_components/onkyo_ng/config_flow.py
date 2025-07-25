@@ -53,25 +53,55 @@ LISTENING_MODES_ALL_MEANINGS = [
 ]
 
 STEP_MANUAL_SCHEMA = vol.Schema({vol.Required(CONF_HOST): str})
-STEP_CONFIGURE_SCHEMA = vol.Schema(
-    {
-        vol.Required(OPTION_VOLUME_RESOLUTION): vol.In(VOLUME_RESOLUTION_ALLOWED),
-        vol.Required(OPTION_INPUT_SOURCES): SelectSelector(
-            SelectSelectorConfig(
-                options=INPUT_SOURCES_ALL_MEANINGS,
-                multiple=True,
-                mode=SelectSelectorMode.DROPDOWN,
-            )
-        ),
-        vol.Required(OPTION_LISTENING_MODES): SelectSelector(
-            SelectSelectorConfig(
-                options=LISTENING_MODES_ALL_MEANINGS,
-                multiple=True,
-                mode=SelectSelectorMode.DROPDOWN,
-            )
-        ),
-    }
-)
+def parse_input_display_name(display_name: str) -> str:
+    """
+    Parse display name back to original meaning.
+    
+    If display_name is in format "Custom Name (Original Name)", extract "Original Name".
+    Otherwise, return the display_name as-is.
+    """
+    if " (" in display_name and display_name.endswith(")"):
+        # Extract original name from "Custom Name (Original Name)" format
+        start_paren = display_name.rfind(" (")
+        return display_name[start_paren + 2:-1]  # Remove " (" and ")"
+    return display_name
+
+
+def get_configure_schema(custom_input_names: dict[str, str] = None) -> vol.Schema:
+    """Generate configure schema with optional custom input names."""
+    # Use custom names if available, otherwise use default meanings
+    if custom_input_names:
+        input_options = []
+        for input_source in InputSource:
+            custom_name = custom_input_names.get(input_source.value)
+            if custom_name:
+                # Use format: "Custom Name (Default Name)" for clarity
+                display_name = f"{custom_name} ({input_source.value_meaning})"
+            else:
+                display_name = input_source.value_meaning
+            input_options.append(display_name)
+    else:
+        input_options = INPUT_SOURCES_ALL_MEANINGS
+    
+    return vol.Schema(
+        {
+            vol.Required(OPTION_VOLUME_RESOLUTION): vol.In(VOLUME_RESOLUTION_ALLOWED),
+            vol.Required(OPTION_INPUT_SOURCES): SelectSelector(
+                SelectSelectorConfig(
+                    options=input_options,
+                    multiple=True,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Required(OPTION_LISTENING_MODES): SelectSelector(
+                SelectSelectorConfig(
+                    options=LISTENING_MODES_ALL_MEANINGS,
+                    multiple=True,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
+        }
+    )
 
 
 class OnkyoConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -192,7 +222,9 @@ class OnkyoConfigFlow(ConfigFlow, domain=DOMAIN):
                 sources_store: dict[str, str] = {}
                 modes_store: dict[str, str] = {}
 
-                for source_meaning in source_meanings:
+                for source_display in source_meanings:
+                    # Parse the display name to get the original meaning
+                    source_meaning = parse_input_display_name(source_display)
                     source = InputSource.from_meaning(source_meaning)
 
                     source_name = source_meaning
@@ -256,22 +288,33 @@ class OnkyoConfigFlow(ConfigFlow, domain=DOMAIN):
                     OPTION_LISTENING_MODES: [],
                 }
             else:
+                # Generate display names for existing selections
+                input_displays = []
+                for input_source_id in entry_options[OPTION_INPUT_SOURCES]:
+                    input_source = InputSource(input_source_id)
+                    custom_name = self._receiver_info.custom_input_names.get(input_source_id)
+                    if custom_name:
+                        display_name = f"{custom_name} ({input_source.value_meaning})"
+                    else:
+                        display_name = input_source.value_meaning
+                    input_displays.append(display_name)
+                
                 suggested_values = {
                     OPTION_VOLUME_RESOLUTION: entry_options[OPTION_VOLUME_RESOLUTION],
-                    OPTION_INPUT_SOURCES: [
-                        InputSource(input_source).value_meaning
-                        for input_source in entry_options[OPTION_INPUT_SOURCES]
-                    ],
+                    OPTION_INPUT_SOURCES: input_displays,
                     OPTION_LISTENING_MODES: [
                         ListeningMode(listening_mode).value_meaning
                         for listening_mode in entry_options[OPTION_LISTENING_MODES]
                     ],
                 }
 
+        # Generate schema with custom input names if available
+        configure_schema = get_configure_schema(self._receiver_info.custom_input_names)
+        
         return self.async_show_form(
             step_id="configure_receiver",
             data_schema=self.add_suggested_values_to_schema(
-                STEP_CONFIGURE_SCHEMA, suggested_values
+                configure_schema, suggested_values
             ),
             errors=errors,
             description_placeholders={

@@ -11,9 +11,83 @@ from typing import Any
 
 import pyeiscp
 
-from .const import DEVICE_DISCOVERY_TIMEOUT, DEVICE_INTERVIEW_TIMEOUT, ZONES
+from .const import DEVICE_DISCOVERY_TIMEOUT, DEVICE_INTERVIEW_TIMEOUT, ZONES, InputSource
 
 _LOGGER = logging.getLogger(__name__)
+
+
+async def async_query_custom_input_names(host: str, port: int = 60128, timeout: int = 5) -> dict[str, str]:
+    """
+    Query custom input names from an Onkyo receiver.
+    
+    Args:
+        host: Receiver IP address
+        port: Receiver port (default 60128)
+        timeout: Query timeout in seconds
+        
+    Returns:
+        Dictionary mapping input IDs to their custom names
+    """
+    custom_names = {}
+    
+    def on_connect(origin: str):
+        _LOGGER.debug(f"Connected to {origin} for input name query")
+    
+    def on_update(message: tuple[str, str, Any], origin: str):
+        """Process received messages looking for input rename responses."""
+        if len(message) >= 3:
+            zone, command, value = message[:3]
+            _LOGGER.debug(f"Input name query received: zone={zone}, command={command}, value={value}")
+            
+            # Check if this is an IRN (Input Rename) response
+            if command == "input-selector-rename-input-function-rename":
+                try:
+                    # IRN response format: "iixxxxxxxxxx" where ii=input_id, xxxxxxxxxx=name
+                    if isinstance(value, str) and len(value) >= 2:
+                        input_id = value[:2]
+                        custom_name = value[2:].strip()
+                        
+                        if custom_name:  # Only store non-empty names
+                            custom_names[input_id] = custom_name
+                            _LOGGER.debug(f"Found custom name for input {input_id}: {custom_name}")
+                            
+                except Exception as e:
+                    _LOGGER.debug(f"Error parsing IRN response: {e}")
+    
+    try:
+        # Create connection
+        conn = await pyeiscp.Connection.create(
+            host=host,
+            port=port,
+            connect_callback=on_connect,
+            update_callback=on_update,
+            auto_connect=False
+        )
+        
+        await conn.connect()
+        await asyncio.sleep(0.5)  # Wait for connection to establish
+        
+        # Query input names for common input sources
+        common_inputs = ['00', '01', '02', '03', '04', '05', '10', '23', '24', '25', '26']
+        
+        for input_id in common_inputs:
+            try:
+                # Send IRN command with just the input ID to query
+                conn.send("main", "IRN", input_id)
+                await asyncio.sleep(0.1)
+            except Exception as e:
+                _LOGGER.debug(f"Failed to query input {input_id}: {e}")
+        
+        # Wait for responses
+        await asyncio.sleep(timeout)
+        
+        conn.close()
+        
+    except Exception as e:
+        _LOGGER.debug(f"Failed to query custom input names from {host}: {e}")
+    
+    _LOGGER.debug(f"Found {len(custom_names)} custom input names")
+    return custom_names
 
 
 @dataclass
@@ -99,6 +173,7 @@ class ReceiverInfo:
     port: int
     model_name: str
     identifier: str
+    custom_input_names: dict[str, str] = field(default_factory=dict)
 
 
 async def async_interview(host: str) -> ReceiverInfo | None:
@@ -113,8 +188,16 @@ async def async_interview(host: str) -> ReceiverInfo | None:
         """Receiver interviewed, connection not yet active."""
         nonlocal receiver_info
         if receiver_info is None:
-            info = ReceiverInfo(host, conn.port, conn.name, conn.identifier)
-            _LOGGER.debug("Receiver interviewed: %s (%s)", info.model_name, info.host)
+            # Query custom input names
+            custom_names = {}
+            try:
+                custom_names = await async_query_custom_input_names(host, conn.port)
+            except Exception as e:
+                _LOGGER.debug(f"Could not query custom input names: {e}")
+            
+            info = ReceiverInfo(host, conn.port, conn.name, conn.identifier, custom_names)
+            _LOGGER.debug("Receiver interviewed: %s (%s), found %d custom input names", 
+                         info.model_name, info.host, len(custom_names))
             receiver_info = info
             event.set()
 
