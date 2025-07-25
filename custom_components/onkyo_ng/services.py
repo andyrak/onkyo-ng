@@ -10,14 +10,12 @@ from homeassistant.components.media_player import DOMAIN as MEDIA_PLAYER_DOMAIN
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
-from homeassistant.util.hass_dict import HassKey
-
 from .const import DOMAIN
 
 if TYPE_CHECKING:
     from .media_player import OnkyoMediaPlayer
 
-DATA_MP_ENTITIES: HassKey[dict[str, dict[str, OnkyoMediaPlayer]]] = HassKey(DOMAIN)
+DATA_MP_ENTITIES = DOMAIN
 
 ATTR_HDMI_OUTPUT = "hdmi_output"
 ACCEPTED_VALUES = [

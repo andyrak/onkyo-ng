@@ -1,6 +1,6 @@
 {
   "domain": "onkyo_ng",
-  "codeowners": ["@kongo09"],
+  "codeowners": ["@andyrak"],
   "config_flow": true,
   "dependencies": ["frontend", "http"],
   "dhcp": [
@@ -8,10 +8,10 @@
       "macaddress": "0009B0*"
     }
   ],
-  "documentation": "https://github.com/kongo09/onkyo-ng/",
+  "documentation": "https://github.com/andyrak/onkyo-ng/",
   "integration_type": "device",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/kongo09/onkyo-ng/issues",
+  "issue_tracker": "https://github.com/andyrak/onkyo-ng/issues",
   "name": "Onkyo NG",
   "requirements": ["pyeiscp==0.0.7"],
   "version": "0.0.1",

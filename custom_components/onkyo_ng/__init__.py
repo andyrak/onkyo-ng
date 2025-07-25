@@ -1,13 +1,15 @@
 """The onkyo component."""
 
 from dataclasses import dataclass
-
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
+from typing import TypeAlias, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
 
 from .const import (
     DOMAIN,
@@ -33,7 +35,11 @@ class OnkyoData:
     modes: dict[ListeningMode, str]
 
 
-type OnkyoConfigEntry = ConfigEntry[OnkyoData]
+if TYPE_CHECKING:
+    OnkyoConfigEntry = ConfigEntry[OnkyoData]
+else:
+    from homeassistant.config_entries import ConfigEntry
+    OnkyoConfigEntry = ConfigEntry
 
 
 async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
@@ -71,7 +77,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: OnkyoConfigEntry) -> boo
 
 async def async_unload_entry(hass: HomeAssistant, entry: OnkyoConfigEntry) -> bool:
     """Unload Onkyo config entry."""
-    del hass.data[DATA_MP_ENTITIES][entry.entry_id]
+    if DATA_MP_ENTITIES in hass.data and entry.entry_id in hass.data[DATA_MP_ENTITIES]:
+        del hass.data[DATA_MP_ENTITIES][entry.entry_id]
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 

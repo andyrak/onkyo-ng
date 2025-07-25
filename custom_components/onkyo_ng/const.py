@@ -2,7 +2,7 @@
 
 from enum import Enum
 import typing
-from typing import ClassVar, Literal, Self
+from typing import ClassVar, Literal, Self, TypeAlias
 
 import pyeiscp
 
@@ -15,12 +15,10 @@ CONF_SOURCES = "sources"
 CONF_MODES = "modes"
 CONF_RECEIVER_MAX_VOLUME = "receiver_max_volume"
 
-type VolumeResolution = Literal[50, 80, 100, 200]
+VolumeResolution: TypeAlias = Literal[50, 80, 100, 200]
 OPTION_VOLUME_RESOLUTION = "volume_resolution"
 OPTION_VOLUME_RESOLUTION_DEFAULT: VolumeResolution = 50
-VOLUME_RESOLUTION_ALLOWED: tuple[VolumeResolution, ...] = typing.get_args(
-    VolumeResolution.__value__
-)
+VOLUME_RESOLUTION_ALLOWED: tuple[VolumeResolution, ...] = (50, 80, 100, 200)
 
 OPTION_MAX_VOLUME = "max_volume"
 OPTION_MAX_VOLUME_DEFAULT = 100.0

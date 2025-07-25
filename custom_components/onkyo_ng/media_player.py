@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Literal
+from typing import Any, Literal, TypeAlias
 
 import voluptuous as vol
 
@@ -137,7 +137,7 @@ VIDEO_INFORMATION_MAPPING = [
 
 ISSUE_URL_PLACEHOLDER = "/config/integrations/dashboard/add?domain=onkyo"
 
-type InputLibValue = str | tuple[str, ...]
+InputLibValue: TypeAlias = str | tuple[str, ...]
 
 
 def _input_lib_cmds(zone: str) -> dict[InputSource, InputLibValue]:
@@ -500,9 +500,9 @@ class OnkyoMediaPlayer(MediaPlayerEntity):
                 source_lib_single = source_lib
             else:
                 source_lib_single = source_lib[0]
-        self._update_receiver(
-            "input-selector" if self._zone == "main" else "selector", source_lib_single
-        )
+            self._update_receiver(
+                "input-selector" if self._zone == "main" else "selector", source_lib_single
+            )
 
     async def async_select_sound_mode(self, sound_mode: str) -> None:
         """Select sound mode."""
@@ -512,10 +512,10 @@ class OnkyoMediaPlayer(MediaPlayerEntity):
                 mode_lib_single = mode_lib
             else:
                 mode_lib_single = mode_lib[0]
-        self._update_receiver(
-            "listening-mode" if self._zone == "main" else "listening-mode",
-            mode_lib_single,
-        )
+            self._update_receiver(
+                "listening-mode" if self._zone == "main" else "listening-mode",
+                mode_lib_single,
+            )
 
     async def async_select_output(self, hdmi_output: str) -> None:
         """Set hdmi-out."""

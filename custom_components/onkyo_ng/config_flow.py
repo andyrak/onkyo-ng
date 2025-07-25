@@ -6,14 +6,13 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import (
-    SOURCE_RECONFIGURE,
     ConfigEntry,
     ConfigFlow,
-    ConfigFlowResult,
     OptionsFlow,
 )
 from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
@@ -83,7 +82,7 @@ class OnkyoConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Handle a flow initialized by the user."""
         return self.async_show_menu(
             step_id="user", menu_options=["manual", "eiscp_discovery"]
@@ -91,7 +90,7 @@ class OnkyoConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_manual(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Handle manual device entry."""
         errors = {}
 
@@ -112,18 +111,11 @@ class OnkyoConfigFlow(ConfigFlow, domain=DOMAIN):
                     await self.async_set_unique_id(
                         info.identifier, raise_on_progress=False
                     )
-                    if self.source == SOURCE_RECONFIGURE:
-                        self._abort_if_unique_id_mismatch()
-                    else:
-                        self._abort_if_unique_id_configured()
+                    self._abort_if_unique_id_configured()
 
                     return await self.async_step_configure_receiver()
 
         suggested_values = user_input
-        if suggested_values is None and self.source == SOURCE_RECONFIGURE:
-            suggested_values = {
-                CONF_HOST: self._get_reconfigure_entry().data[CONF_HOST]
-            }
 
         return self.async_show_form(
             step_id="manual",
@@ -135,7 +127,7 @@ class OnkyoConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_eiscp_discovery(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Start eiscp discovery and handle user device selection."""
         if user_input is not None:
             self._receiver_info = self._discovered_infos[user_input[CONF_DEVICE]]
@@ -181,15 +173,12 @@ class OnkyoConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_configure_receiver(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Handle the configuration of a single receiver."""
         errors = {}
 
         entry = None
         entry_options = None
-        if self.source == SOURCE_RECONFIGURE:
-            entry = self._get_reconfigure_entry()
-            entry_options = entry.options
 
         if user_input is not None:
             source_meanings: list[str] = user_input[OPTION_INPUT_SOURCES]
@@ -290,11 +279,6 @@ class OnkyoConfigFlow(ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_reconfigure(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Handle reconfiguration of the receiver."""
-        return await self.async_step_manual()
 
     @staticmethod
     @callback
@@ -317,7 +301,7 @@ class OnkyoOptionsFlowHandler(OptionsFlow):
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Manage the options."""
         if user_input is not None:
             sources_store: dict[str, str] = {}

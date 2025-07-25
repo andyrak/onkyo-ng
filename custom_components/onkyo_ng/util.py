@@ -1,5 +1,5 @@
 def dict_merge(a: dict, b: dict, path=[]):
-    """Merge dictionary b into dictionary b"""
+    """Merge dictionary b into dictionary a"""
     for key in b:
         if key in a:
             if isinstance(a[key], dict) and isinstance(b[key], dict):
