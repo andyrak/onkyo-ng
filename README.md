@@ -4,8 +4,8 @@
 [hacs_shield]: https://img.shields.io/static/v1.svg?label=HACS&message=Custom&style=popout&color=orange&labelColor=41bdf5&logo=HomeAssistantCommunityStore&logoColor=white
 [hacs]: https://hacs.xyz/docs/default_repositories
 
-[latest_release]: https://github.com/andyrak/hass-onkyo-ng/releases/latest
-[releases_shield]: https://img.shields.io/github/release/andyrak/hass-onkyo-ng.svg?style=popout
+[latest_release]: https://github.com/andyrak/onkyo-ng/releases/latest
+[releases_shield]: https://img.shields.io/github/release/andyrak/onkyo-ng.svg?style=popout
 
 This is a `Local Pull` integration for Onkyo and Pioneer AV receivers.
 Only devices that support EISCP will work.
@@ -20,7 +20,7 @@ This integration makes an effort to improve on the Home Assistant [core onkyo in
 
 * Go to HACS -> Integrations
 * Click the three dots on the top right and select `Custom Repositories`
-* Enter `https://github.com/andyrak/hass-onkyo-ng.git` as repository, select the category `Integration` and click Add
+* Enter `https://github.com/andyrak/onkyo-ng.git` as repository, select the category `Integration` and click Add
 * A new custom integration shows up for installation (Onkyo NG) - install it
 * Restart Home Assistant
 
@@ -45,7 +45,7 @@ To aquire debug-logs, add the following to your `configuration.yaml`:
 ```yaml
 logger:
   logs:
-    custom_components.hass_onkyo_ng: debug
+    custom_components.onkyo_ng: debug
 ```
 
 logs should now be available in `home-assistant.log`
